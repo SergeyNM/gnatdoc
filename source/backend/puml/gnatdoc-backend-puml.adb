@@ -4,6 +4,7 @@ with Ada.Containers;
 
 with GNATdoc.Entities; use GNATdoc.Entities;
 with Streams;
+with VSS.Strings;
 
 package body GNATdoc.Backend.PUML is
 
@@ -12,18 +13,18 @@ package body GNATdoc.Backend.PUML is
    --     Entity : Entity_Information);
    --  ?? Generate PUML file for given entity.
 
-   procedure Generate_Package_Diagram
+   procedure Append_Package_Diagram
      (Self   : in out PUML_Backend'Class;
       Entity : Entity_Information);
       --  Entity : not null Entity_Information_Access);
-   --  Generate/Add documentation to package diagramm for given entity.
+   --  Append documentation to package diagram for given entity.
 
-   procedure Generate_Class_Diagram
+   procedure Append_Class_Diagram
      (Self   : in out PUML_Backend'Class;
       Entity : Entity_Information;
       File   : in out Streams.Output_Text_Stream);
       --  Entity : not null Entity_Information_Access);
-   --  Generate/Add documentation to class diamramm for given entity.
+   --  Append documentation to class diagram for given entity.
 
    --  OOP_Style_Option : constant VSS.Command_Line.Binary_Option :=
    --    (Short_Name  => <>,
@@ -64,78 +65,91 @@ package body GNATdoc.Backend.PUML is
       --  classes.puml, packages.puml
       --
       --  FIXME: Generate workflow
-      --  [R] Open files
-      --  [ ] Analyse and separate, call subprograms
+      --  [+] Open files
+      --  [ ] Process and separate, call subprograms
       --  [+] Close files
 
       --  Open output files.
       File_Classes.Open (Name_Classes);
       File_Packages.Open (Name_Packages);
-      File_Classes.Put_Line ("@startuml", Success);
-      File_Packages.Put_Line ("@startuml", Success);
 
+      --  TODO: ?? Move to proc ??
+      File_Classes.Put ("@startuml", Success);
+      File_Classes.Put_Line (" classes", Success);
+      File_Classes.Put_Line ("set namespaceSeparator none", Success);
+      File_Classes.New_Line (Success);
+
+      File_Packages.Put ("@startuml", Success);
+      File_Packages.Put_Line (" packages", Success);
+      File_Packages.Put_Line ("set namespaceSeparator none", Success);
+      File_Packages.New_Line (Success);
+
+      --  FIXME: Packages.
       for Item of Globals.Packages loop
          if not Is_Private_Entity (Item) then
-            Self.Generate_Class_Diagram (Item.all, File_Classes);
-            --  FIXME: make choice for public, private, body?
-            --
-            File_Classes.New_Line (Success);
-
-            Self.Generate_Package_Diagram (Item.all);
+            Self.Append_Package_Diagram (Item.all);
             --  FIXME: make choice for public, private, body?
             --
             --  File_Pkg.New_Line (Success);  -- FIXME:
          end if;
       end loop;
 
+      for Item of Globals.Interface_Types loop
+         --  if not Is_Private_Entity (Item) then
+         --     Class_Index_Entities.Insert (Item);
+         --  end if;
+            Self.Append_Class_Diagram (Item.all, File_Classes);
+            --  FIXME: make choice for public, private, body?
+            --
+            File_Classes.New_Line (Success);
+      end loop;
+
+      for Item of Globals.Tagged_Types loop
+         --  if not Is_Private_Entity (Item) then
+         --     Class_Index_Entities.Insert (Item);
+         --  end if;
+            Self.Append_Class_Diagram (Item.all, File_Classes);
+            --  FIXME: make choice for public, private, body?
+            --
+            File_Classes.New_Line (Success);
+      end loop;
+
       File_Classes.Put_Line ("@enduml", Success);
-      File_Classes.New_Line (Success);
+      --  File_Classes.New_Line (Success);
+
       File_Packages.Put_Line ("@enduml", Success);
-      File_Packages.New_Line (Success);
+      --  File_Packages.New_Line (Success);
+
       --  Close output files.
       File_Classes.Close;
       File_Packages.Close;
    end Generate;
 
-   ------------------------------
-   -- Generate_Package_Diagram --
-   ------------------------------
+   ----------------------------
+   -- Append_Package_Diagram --
+   ----------------------------
 
-   procedure Generate_Package_Diagram
+   procedure Append_Package_Diagram
      (Self   : in out PUML_Backend'Class;
       Entity : Entity_Information)
    is
    begin
       null; --  FIXME:
-   end Generate_Package_Diagram;
+   end Append_Package_Diagram;
 
-   ----------------------------
-   -- Generate_Class_Diagram --
-   ----------------------------
+   --------------------------
+   -- Append_Class_Diagram --
+   --------------------------
 
-   procedure Generate_Class_Diagram
+   procedure Append_Class_Diagram
      (Self   : in out PUML_Backend'Class;
       Entity : Entity_Information;
       File   : in out Streams.Output_Text_Stream)
    is
-      --  Name    : constant GNATCOLL.VFS.Virtual_File :=
-      --    GNATCOLL.VFS.Create_From_Base
-      --      (GNATCOLL.VFS.Filesystem_String
-      --         (VSS.Strings.Conversions.To_UTF_8_String
-      --            (Documentation_File_Name (Entity))),
-      --       GNATdoc.Configuration.Provider.Output_Directory
-      --         (Self.Name).Full_Name);
-      --  Name    : constant GNATCOLL.VFS.Virtual_File :=
-      --    GNATCOLL.VFS.Create_From_Base
-      --      (GNATCOLL.VFS.Filesystem_String'("classes.puml"));
-      --
-      --  File    : Streams.Output_Text_Stream;
       Success : Boolean := True;
-
       --  Nested : Entity_Information_Sets.Set;
    begin
-      --  FIXME: Bellow is sample
-
+      --  FIXME: Bellow is sample.
       --  Nested.Union (Entity.Formals);
       --  Nested.Union (Entity.Exceptions);
       --  Nested.Union (Entity.Simple_Types);
@@ -176,13 +190,19 @@ package body GNATdoc.Backend.PUML is
       --  Nested.Union (Entity.Derived_Types);
       --  Entity.All_Derived_Types;
 
-      --  FIXME:
+      --  FIXME: Print debug.
       --  File.Put (Entity.Qualified_Name, Success);
+      --  File.Put (" ", Success);
+      --  File.Put
+      --    (VSS.Strings.To_Virtual_String (Entity.Kind'Wide_Wide_Image), Success);
+      --  File.New_Line (Success);
 
-      if Entity.Kind in Ada_Tagged_Type .. Ada_Interface_Type then
+      if Entity.Kind = Ada_Tagged_Type or
+        Entity.Kind = Ada_Interface_Type
+      then
          if Entity.Kind = Ada_Tagged_Type then
-         --  if `F_Has_Abstract` then
-            --  FIXME: ?? How to check F_Has_Abstract ??
+         --  if `Entity.F_Has_Abstract` then
+            --  FIXME: ?? How to check `Entity.F_Has_Abstract` ??
             --  File.Put ("abstract ", Success);
          --  else
             File.Put ("class ", Success);
@@ -198,16 +218,8 @@ package body GNATdoc.Backend.PUML is
             File.Put (Entity.Parent_Type.Qualified_Name."&" (" "), Success);
          end if;
 
-         --  if not Entity.Progenitor_Types.Is_Empty then
-         --     File.Put ("implements ", Success);
-         --     for P of Entity.Progenitor_Types loop
-         --        File.Put (P.Qualified_Name."&" (", "), Success);
-         --     --  FIXME: Dont put ", " after last Progenitor. Put " ".
-         --     end loop;
-         --  end if;
-         --
          declare
-            use type Ada.Containers.Count_Type;
+            use Ada.Containers;
             Unprocessed_Progenitors : Count_Type :=
               Entity.Progenitor_Types.Length;
          begin
@@ -224,7 +236,6 @@ package body GNATdoc.Backend.PUML is
                end loop;
             end if;
          end;
-
 --  {
 --      ' {field}, {method} are optional.
 --      ' You can use {field} and {method} modifiers to override default
@@ -240,29 +251,35 @@ package body GNATdoc.Backend.PUML is
 --      --body--
 --      - {method} Body_Method_3 (Arg_1 : String) : String
 --  }
-
          File.Put ("{", Success);  -- Begin
          File.New_Line (Success);
-      --
-      --  + {field}
-      --  + {method}
-      --
-      --  __private__
-      --
-      --  # {field}
-      --  # {method}
-      --
-      --  --body--
-      --  + {field}
-      --  - {method}
-      --
+         --  TODO: Increase the indent.
+
+         --  TODO: Sections private, body.
+         --  + {field}
+         --  + {method}
+         --
+         --  __private__
+         --
+         --  # {field}
+         --  # {method}
+         --
+         --  --body--
+         --  + {field}
+         --  - {method}
+
+         for Method of Entity.Belongs_Subprograms loop
+            File.Put_Line (Method.Signature.Image, Success);
+            File.Put_Line (Method.Qualified_Name, Success);
+            --  TODO:
+         end loop;
+
+         --  TODO: Decrease the indent.
+         --  File.Put_Line ("}", Success);  -- End
          File.Put ("}", Success);  -- End
+         File.New_Line (Success);  -- FIXME: May be not needed.
       end if;
-
-      --  File.Put_Lines (Success);
-      File.New_Line (Success);
-
-   end Generate_Class_Diagram;
+   end Append_Class_Diagram;
 
    ----------------
    -- Initialize --
