@@ -19,6 +19,7 @@ with GNATdoc.Backend.HTML;
 with GNATdoc.Backend.ODF;
 with GNATdoc.Backend.RST.PT;
 with GNATdoc.Backend.Test;
+with GNATdoc.Backend.PUML;
 
 package body GNATdoc.Backend.Registry is
 
@@ -46,6 +47,9 @@ package body GNATdoc.Backend.Registry is
 
       elsif Name = "test" then
          return new GNATdoc.Backend.Test.Test_Backend;
+
+      elsif Name = "puml" then
+         return new GNATdoc.Backend.PUML.PUML_Backend;
       end if;
 
       return null;

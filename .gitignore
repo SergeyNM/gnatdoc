@@ -2,3 +2,5 @@
 .objs
 bin
 testsuite/out
+alire
+alire.toml

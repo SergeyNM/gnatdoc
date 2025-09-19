@@ -76,4 +76,6 @@ begin
    --  Generate documentation
 
    Backend.Generate;
+
+   --  TODO: Destroy Backend?
 end GNATdoc.Driver;

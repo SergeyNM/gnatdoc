@@ -27,7 +27,7 @@ project LibGNATdoc is
 
    package Compiler is
       for Switches ("Ada") use
-        ("-g", "-gnat2022", "-gnatW8", "-gnatygO", "-gnata", "-gnatwa");
+        ("-g", "-gnat2022", "-gnatW8", "-gnatygO", "-gnata", "-gnatwa", "-Ofast");
    end Compiler;
 
 end LibGNATdoc;

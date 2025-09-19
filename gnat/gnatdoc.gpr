@@ -30,6 +30,7 @@ project GNATdoc is
       "../source/backend/odf",
       "../source/backend/rst",
       "../source/backend/xml_templates",
+      "../source/backend/puml",
       "../source/frontend",
       "../source/gnatdoc");
    for Exec_Dir use "../bin";
@@ -48,3 +49,4 @@ project GNATdoc is
    end Install;
 
 end GNATdoc;
+
