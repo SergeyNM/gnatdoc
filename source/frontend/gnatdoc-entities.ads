@@ -79,6 +79,12 @@ package GNATdoc.Entities is
       Kind                   : Entity_Kind := Undefined;
       Is_Specification       : Boolean     := True;
       Name                   : VSS.Strings.Virtual_String;
+
+      Name_Prefix            : VSS.Strings.Virtual_String;
+      Name_Suffix            : VSS.Strings.Virtual_String;
+      --  TODO: SNM: for `Dotted_Name` LAL .F_Prefix, .F_Suffix.
+      --  For `Identifier` use Name? Because Name_Prefix (_Suffix) is empty.
+
       Qualified_Name         : VSS.Strings.Virtual_String;
       Signature              : Entity_Signature;
       Documentation          : aliased GNATdoc.Comments.Structured_Comment;
@@ -103,6 +109,11 @@ package GNATdoc.Entities is
 
       RST_Profile            : VSS.Strings.Virtual_String;
       --  Subprogram's profile in fortmat to use by RST backend
+      PUML_Profile           : VSS.Strings.Virtual_String;
+      --  Subprogram's profile in fortmat to use by PUML backend
+      --
+      --  TODO: SNM: May be combine in one united field with RST_Profile and
+      --  it`s content must be depend on `--backend rst|puml` argument.
 
       Packages               : Entity_Information_Sets.Set;
       Subprograms            : aliased Entity_Information_Sets.Set;
@@ -152,7 +163,7 @@ package GNATdoc.Entities is
       --  References to all known direct or indirect parent and derived types.
 
       Dispatching_Declared   : aliased Entity_Reference_Sets.Set;
-      --  Displatching operations declared by the type.
+      --  Dispatching operations declared by the type.
 
       Dispatching_Overrided  : aliased Entity_Reference_Sets.Set;
       --  Dispatching operations overrided by the type.

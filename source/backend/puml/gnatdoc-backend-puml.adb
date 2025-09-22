@@ -1,3 +1,5 @@
+pragma Ada_2022;
+
 with Ada.Containers;
 
 --  with VSS.Strings.Conversions;
@@ -53,6 +55,10 @@ package body GNATdoc.Backend.PUML is
    -- Generate --
    --------------
 
+   --------------
+   -- Generate --
+   --------------
+
    overriding procedure Generate (Self : in out PUML_Backend) is
       Name_Classes  : constant GNATCOLL.VFS.Virtual_File :=
         GNATCOLL.VFS.Create_From_Dir (Self.Output_Root, "classes.puml");
@@ -66,14 +72,14 @@ package body GNATdoc.Backend.PUML is
       --
       --  FIXME: Generate workflow
       --  [+] Open files
-      --  [ ] Process and separate, call subprograms
+      --  [*] Process and separate, call subprograms
       --  [+] Close files
 
       --  Open output files.
       File_Classes.Open (Name_Classes);
       File_Packages.Open (Name_Packages);
 
-      --  TODO: ?? Move to proc ??
+      --  TODO: ?? Extract procedure: startuml classes, packages ??
       File_Classes.Put ("@startuml", Success);
       File_Classes.Put_Line (" classes", Success);
       File_Classes.Put_Line ("set namespaceSeparator none", Success);
@@ -93,6 +99,10 @@ package body GNATdoc.Backend.PUML is
             --  File_Pkg.New_Line (Success);  -- FIXME:
          end if;
       end loop;
+
+      -------------
+      -- Classes --
+      -------------
 
       for Item of Globals.Interface_Types loop
          --  if not Is_Private_Entity (Item) then
@@ -149,7 +159,7 @@ package body GNATdoc.Backend.PUML is
       Success : Boolean := True;
       --  Nested : Entity_Information_Sets.Set;
    begin
-      --  FIXME: Bellow is sample.
+      --  FIXME: Bellow is samples.
       --  Nested.Union (Entity.Formals);
       --  Nested.Union (Entity.Exceptions);
       --  Nested.Union (Entity.Simple_Types);
@@ -200,6 +210,8 @@ package body GNATdoc.Backend.PUML is
       if Entity.Kind = Ada_Tagged_Type or
         Entity.Kind = Ada_Interface_Type
       then
+      --  FIXME: ^ - May be like redundand check.
+      --
          if Entity.Kind = Ada_Tagged_Type then
          --  if `Entity.F_Has_Abstract` then
             --  FIXME: ?? How to check `Entity.F_Has_Abstract` ??
@@ -212,6 +224,17 @@ package body GNATdoc.Backend.PUML is
          end if;
 
          File.Put (Entity.Qualified_Name."&" (" "), Success);
+         File.Put ("as """, Success);
+         --  File.Put (To_Entity (Entity.Enclosing).Name, Success);
+         File.Put (To_Entity (Entity.Enclosing).Name_Suffix, Success);
+         --  FIXME: For empty Enclosing Name_Suffix (Name_Prefix), use
+         --  Enclosing Name.
+         File.Put (".", Success);
+         File.Put (Entity.Name."&" (""" "), Success);
+
+         File.Put ("<< namespace: ", Success);
+         File.Put (To_Entity (Entity.Enclosing).Name_Prefix, Success);
+         File.Put (". >> ", Success);
 
          if not Entity.Parent_Type.Qualified_Name.Is_Empty then
             File.Put ("extends ", Success);
@@ -240,44 +263,40 @@ package body GNATdoc.Backend.PUML is
 --      ' {field}, {method} are optional.
 --      ' You can use {field} and {method} modifiers to override default
 --      ' behaviour of the parser about fields and methods.
+--
 --      + {field} Public_Field_1 : String
---      + {method} Public_Method_1 (Arg_1 : String) : String
+--      + {method} Public_Method_1 (Arg_1 : String) -> String
+--
 --      __private__
 --      # {field} Private_Field_2 : String
 --      # {field} Color : HTML_Color
 --      # {field} Aggregation : Aggregated
 --      # {field} Composition : Composed
---      # {method} Private_Method_2 (Arg_1 : String) : String
+--      # {method} Private_Method_2 (Arg_1 : String) -> String
+--
 --      --body--
---      - {method} Body_Method_3 (Arg_1 : String) : String
+--      - {method} Body_Method_3 (Arg_1 : String) -> String
 --  }
-         File.Put ("{", Success);  -- Begin
+         File.Put ("{", Success);  -- Begin class
          File.New_Line (Success);
+
          --  TODO: Increase the indent.
 
-         --  TODO: Sections private, body.
-         --  + {field}
-         --  + {method}
-         --
-         --  __private__
-         --
-         --  # {field}
-         --  # {method}
-         --
-         --  --body--
-         --  + {field}
-         --  - {method}
 
          for Method of Entity.Belongs_Subprograms loop
-            File.Put_Line (Method.Signature.Image, Success);
-            File.Put_Line (Method.Qualified_Name, Success);
-            --  TODO:
+            File.Put ("+ {method} ", Success);
+            --  File.Put_Line
+            --    (To_Entity.Element (Method.Signature).RST_Profile, Success);
+            File.Put_Line
+              (To_Entity.Element (Method.Signature).PUML_Profile, Success);
          end loop;
 
+         --  TODO: Sections private, body.
+
          --  TODO: Decrease the indent.
-         --  File.Put_Line ("}", Success);  -- End
-         File.Put ("}", Success);  -- End
-         File.New_Line (Success);  -- FIXME: May be not needed.
+
+         File.Put_Line ("}", Success);  -- End class
+
       end if;
    end Append_Class_Diagram;
 

@@ -203,6 +203,15 @@ package body GNATdoc.Frontend is
      (Node : Libadalang.Analysis.Subp_Spec'Class)
       return VSS.Strings.Virtual_String;
 
+   function PUML_Profile
+     (Node : Libadalang.Analysis.Subp_Spec'Class)
+      return VSS.Strings.Virtual_String;
+
+   function Subprogram_Profile
+     (Node : Libadalang.Analysis.Subp_Spec'Class;
+      Backend_Name : VSS.Strings.Virtual_String)
+      return VSS.Strings.Virtual_String;
+
    procedure Resolve_Belongs_To
      (Enclosing : not null GNATdoc.Entities.Entity_Information_Access;
       Belongs   : out GNATdoc.Entities.Entity_Information_Access;
@@ -790,6 +799,8 @@ package body GNATdoc.Frontend is
            Enclosing      =>
              Signature (Node.P_Parent_Basic_Decl.P_Defining_Name),
            RST_Profile    => RST_Profile (Node.F_Subp_Spec),
+           PUML_Profile   => PUML_Profile (Node.F_Subp_Spec),
+           --  TODO: SNM:
            others         => <>);
       Belongs : GNATdoc.Entities.Entity_Information_Access;
 
@@ -1208,6 +1219,8 @@ package body GNATdoc.Frontend is
            Enclosing      =>
              Signature (Node.P_Parent_Basic_Decl.P_Defining_Name),
            RST_Profile    => RST_Profile (Spec),
+           PUML_Profile   => PUML_Profile (Node.F_Subp_Spec),
+           --  TODO: SNM:
            others         => <>);
       Belongs : GNATdoc.Entities.Entity_Information_Access;
 
@@ -1621,6 +1634,8 @@ package body GNATdoc.Frontend is
            Enclosing      =>
              Signature (Node.P_Parent_Basic_Decl.P_Defining_Name),
            RST_Profile    => RST_Profile (Spec),
+           PUML_Profile   => PUML_Profile (Spec),
+           --  TODO: SNM:
            others         => <>);
 
    begin
@@ -1822,6 +1837,32 @@ package body GNATdoc.Frontend is
       end loop;
    end Process_Object_Decl;
 
+   --  TODO: SNM:
+   function Name_Prefix (Name : Defining_Name)
+     return VSS.Strings.Virtual_String is
+   begin
+      if not Name.F_Name.Is_Null and then
+        Name.F_Name.Kind in Ada_Dotted_Name_Range
+      then
+         return To_Virtual_String (Name.F_Name.As_Dotted_Name.F_Prefix.Text);
+      else
+         return VSS.Strings.Empty_Virtual_String;
+      end if;
+   end Name_Prefix;
+
+   --  TODO: SNM:
+   function Name_Suffix (Name : Defining_Name)
+     return VSS.Strings.Virtual_String is
+   begin
+      if not Name.F_Name.Is_Null and then
+        Name.F_Name.Kind in Ada_Dotted_Name_Range
+      then
+         return To_Virtual_String (Name.F_Name.As_Dotted_Name.F_Suffix.Text);
+      else
+         return VSS.Strings.Empty_Virtual_String;
+      end if;
+   end Name_Suffix;
+
    --------------------------
    -- Process_Package_Decl --
    --------------------------
@@ -1831,10 +1872,19 @@ package body GNATdoc.Frontend is
       Enclosing : not null GNATdoc.Entities.Entity_Information_Access)
    is
       Name   : constant Defining_Name := Node.F_Package_Name;
+      --  TODO: SNM: :ada:ref:`Dotted_Name`, :ada:ref:`Identifier`
+      --  if Name.F_Name is `Dotted_Name` then
+      --    f_prefix (`Identifier`)
+      --    f_suffix: (`Identifier`)
+      --  if Name.F_Name is `Identifier`
       Entity : constant not null GNATdoc.Entities.Entity_Information_Access :=
         new GNATdoc.Entities.Entity_Information'
           (Location       => GNATdoc.Utilities.Location (Name),
            Name           => To_Virtual_String (Name.F_Name.Text),
+           --  TODO: SNM:
+           Name_Prefix    => Name_Prefix (Name),
+           Name_Suffix    => Name_Suffix (Name),
+
            Qualified_Name => To_Virtual_String (Name.P_Fully_Qualified_Name),
            Signature      => Signature (Name),
            Enclosing      =>
@@ -2261,6 +2311,18 @@ package body GNATdoc.Frontend is
    function RST_Profile
      (Node : Libadalang.Analysis.Subp_Spec'Class)
       return VSS.Strings.Virtual_String
+   is (Subprogram_Profile (Node, "rst"));
+
+   function PUML_Profile
+     (Node : Libadalang.Analysis.Subp_Spec'Class)
+      return VSS.Strings.Virtual_String
+   is (Subprogram_Profile (Node, "puml"));
+
+   function Subprogram_Profile
+     (Node : Libadalang.Analysis.Subp_Spec'Class;
+      Backend_Name : VSS.Strings.Virtual_String)
+     --  TODO: SNM: ?? Use func Gnatdoc.Configuration.Backend_Name ??
+      return VSS.Strings.Virtual_String
    is
       Params  : constant Libadalang.Analysis.Params'Class :=
         Node.F_Subp_Params;
@@ -2270,18 +2332,22 @@ package body GNATdoc.Frontend is
 
    begin
       return Result : VSS.Strings.Virtual_String do
-         case Node.F_Subp_Kind is
-            when Ada_Subp_Kind_Function =>
-               Result.Append ("function ");
-            when Ada_Subp_Kind_Procedure =>
-               Result.Append ("procedure ");
-         end case;
+         if Backend_Name = "rst" then
+            case Node.F_Subp_Kind is
+               when Ada_Subp_Kind_Function =>
+                  Result.Append ("function ");
+               when Ada_Subp_Kind_Procedure =>
+                  Result.Append ("procedure ");
+            end case;
+         --  Note: SNM: If "puml", for shortnes, we are skip reserved words.
+         end if;
 
          Result.Append
            (VSS.Strings.To_Virtual_String (Node.F_Subp_Name.Text));
 
          if not Params.Is_Null then
             Result.Append (" (");
+            --  TODO: SNM: ?? If "puml" then drop controlling Param ??
 
             for Param of Params.F_Params loop
                declare
@@ -2358,7 +2424,12 @@ package body GNATdoc.Frontend is
          end if;
 
          if not Returns.Is_Null then
-            Result.Append (" return ");
+            if Backend_Name = "rst" then
+               Result.Append (" return ");
+            elsif Backend_Name = "puml" then
+               Result.Append (" -> ");  -- may be  " : " ?
+               --  Note: SNM: Short symbol versus word `return`.
+            end if;
 
             case Returns.Kind is
                when Ada_Subtype_Indication =>
@@ -2381,7 +2452,7 @@ package body GNATdoc.Frontend is
             end case;
          end if;
       end return;
-   end RST_Profile;
+   end Subprogram_Profile;
 
    ---------------
    -- Signature --
