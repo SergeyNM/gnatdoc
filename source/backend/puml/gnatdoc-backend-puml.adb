@@ -207,6 +207,28 @@ package body GNATdoc.Backend.PUML is
       --    (VSS.Strings.To_Virtual_String (Entity.Kind'Wide_Wide_Image), Success);
       --  File.New_Line (Success);
 
+      --  Note: | - or, [..] - optional element
+      --
+      --  abstract|class|entity|enum|interface|record|struct Qualified_Name \
+      --   [as Aliased_Name] [<< (), Label_Info >>] {
+      --   ' {field}, {method} are optional.
+      --   ' You can use {field} and {method} modifiers to override default
+      --   ' behaviour of the parser about fields and methods.
+      --
+      --      + {field} Public_Field_1 : String
+      --      + {method} Public_Method_1 (Arg_1 : String) -> String
+      --
+      --      __private__
+      --      # {field} Private_Field_2 : String
+      --      # {field} Color : HTML_Color
+      --      # {field} Aggregation : Aggregated
+      --      # {field} Composition : Composed
+      --      # {method} Private_Method_2 (Arg_1 : String) -> String
+      --
+      --      --body--
+      --      - {method} Body_Method_3 (Arg_1 : String) -> String
+      --  }
+
       if Entity.Kind = Ada_Tagged_Type or
         Entity.Kind = Ada_Interface_Type
       then
@@ -259,29 +281,11 @@ package body GNATdoc.Backend.PUML is
                end loop;
             end if;
          end;
---  {
---      ' {field}, {method} are optional.
---      ' You can use {field} and {method} modifiers to override default
---      ' behaviour of the parser about fields and methods.
---
---      + {field} Public_Field_1 : String
---      + {method} Public_Method_1 (Arg_1 : String) -> String
---
---      __private__
---      # {field} Private_Field_2 : String
---      # {field} Color : HTML_Color
---      # {field} Aggregation : Aggregated
---      # {field} Composition : Composed
---      # {method} Private_Method_2 (Arg_1 : String) -> String
---
---      --body--
---      - {method} Body_Method_3 (Arg_1 : String) -> String
---  }
-         File.Put ("{", Success);  -- Begin class
+
+         File.Put ("{", Success);  -- Begin scope.
          File.New_Line (Success);
 
          --  TODO: Increase the indent.
-
 
          for Method of Entity.Belongs_Subprograms loop
             File.Put ("+ {method} ", Success);
@@ -295,7 +299,7 @@ package body GNATdoc.Backend.PUML is
 
          --  TODO: Decrease the indent.
 
-         File.Put_Line ("}", Success);  -- End class
+         File.Put_Line ("}", Success);  -- End scope.
 
       end if;
    end Append_Class_Diagram;
